@@ -5,13 +5,13 @@ services:
     image: ghcr.io/marekruttner/resolvei-application:latest
     container_name: flutter_web_app
 
-    # environment variables from .env
+    # Environment variables from .env
     environment:
       - TAILSCALE_AUTHKEY=${TAILSCALE_AUTHKEY}
 
-    # Publish port 80 inside the container as 20001 on the host
+    # Publish port 80 inside the container as 20006 on the host
     ports:
-      - "20001:80"
+      - "20006:80"
 
     networks:
       - proxy
@@ -22,19 +22,19 @@ services:
       - "traefik.docker.network=traefik_proxy"
 
       # HTTP router: redirect to HTTPS
-      - "traefik.http.routers.web_flutter_app.entrypoints=web"
-      - 'traefik.http.routers.web_flutter_app.rule=Host("${WEB_DOMAIN}")'
-      - "traefik.http.routers.web_flutter_app.middlewares=web_flutter_app_https"
-      - "traefik.http.middlewares.web_flutter_app_https.redirectscheme.scheme=https"
+      - "traefik.http.routers.flutter_web_app_http.entrypoints=web"
+      - "traefik.http.routers.flutter_web_app_http.rule=Host(`${WEB_DOMAIN}`)"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.flutter_web_app_http.middlewares=redirect-to-https"
 
       # HTTPS router
-      - "traefik.http.routers.web_flutter_app-https.entrypoints=websecure"
-      - 'traefik.http.routers.web_flutter_app-https.rule=Host("${WEB_DOMAIN}")'
-      - "traefik.http.routers.web_flutter_app-https.tls=true"
-      - "traefik.http.routers.web_flutter_app-https.tls.certresolver=main-resolver"
-      - "traefik.http.services.web_flutter_app-https.loadbalancer.server.port=80"
+      - "traefik.http.routers.flutter_web_app_https.entrypoints=websecure"
+      - "traefik.http.routers.flutter_web_app_https.rule=Host(`${WEB_DOMAIN}`)"
+      - "traefik.http.routers.flutter_web_app_https.tls=true"
+      - "traefik.http.routers.flutter_web_app_https.tls.certresolver=main-resolver"
+      - "traefik.http.services.flutter_web_app_https.loadbalancer.server.port=80"
 
 networks:
   proxy:
     external: true
-    name: "traefik_proxy"
+    name: traefik_proxy
