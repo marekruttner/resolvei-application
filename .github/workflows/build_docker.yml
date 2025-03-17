@@ -1,0 +1,41 @@
+name: Build and Push Flutter Web to GHCR
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Flutter Web
+        run: flutter build web --release
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --file Dockerfile \
+            --tag ghcr.io/${{ secrets.GHCR_USER }}/${{ github.repository##*/ }}:${{ github.sha }} \
+            --tag ghcr.io/${{ secrets.GHCR_USER }}/${{ github.repository##*/ }}:latest \
+            .
+
+      - name: Log in to GHCR
+        run: |
+          echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ secrets.GHCR_USER }} --password-stdin
+
+      - name: Push Docker image
+        run: |
+          docker push ghcr.io/${{ secrets.GHCR_USER }}/${{ github.repository##*/ }}:${{ github.sha }}
+          docker push ghcr.io/${{ secrets.GHCR_USER }}/${{ github.repository##*/ }}:latest

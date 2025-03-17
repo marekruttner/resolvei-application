@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  flutter_web_app:
+    image: ghcr.io/<GH_USERNAME>/<REPO_NAME>:latest
+    container_name: flutter_web_app
+
+    # environment variables from .env
+    environment:
+      - TAILSCALE_AUTHKEY=${TAILSCALE_AUTHKEY}
+
+    # Publish port 80 inside the container as 20001 on the host
+    ports:
+      - "20001:80"
+
+    networks:
+      - proxy
+
+    # Traefik labels
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+
+      # HTTP router: redirect to HTTPS
+      - "traefik.http.routers.web_flutter_app.entrypoints=web"
+      - 'traefik.http.routers.web_flutter_app.rule=Host("${WEB_DOMAIN}")'
+      - "traefik.http.routers.web_flutter_app.middlewares=web_flutter_app_https"
+      - "traefik.http.middlewares.web_flutter_app_https.redirectscheme.scheme=https"
+
+      # HTTPS router
+      - "traefik.http.routers.web_flutter_app-https.entrypoints=websecure"
+      - 'traefik.http.routers.web_flutter_app-https.rule=Host("${WEB_DOMAIN}")'
+      - "traefik.http.routers.web_flutter_app-https.tls=true"
+      - "traefik.http.routers.web_flutter_app-https.tls.certresolver=main-resolver"
+      - "traefik.http.services.web_flutter_app-https.loadbalancer.server.port=80"
+
+networks:
+  proxy:
+    external:
+      name: "traefik_proxy"
