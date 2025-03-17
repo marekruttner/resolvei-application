@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   flutter_web_app:
-    image: ghcr.io/<GH_USERNAME>/<REPO_NAME>:latest
+    image: ghcr.io/marekruttner/resolvei-application:latest
     container_name: flutter_web_app
 
     # environment variables from .env
@@ -36,5 +36,5 @@ services:
 
 networks:
   proxy:
-    external:
-      name: "traefik_proxy"
+    external: true
+    name: "traefik_proxy"
