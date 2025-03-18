@@ -1,28 +1,60 @@
-# Dockerfile
+# Stage 1: Build the Flutter web application
+FROM debian:latest AS build-env
 
-FROM alpine:3.17
+# Install necessary dependencies
+RUN apt-get update && \
+    apt-get install -y \
+    curl \
+    git \
+    wget \
+    unzip \
+    libstdc++6 \
+    python3 \
+    openjdk-11-jdk-headless \
+    ca-certificates \
+    fonts-droid-fallback \
+    libglu1-mesa && \
+    apt-get clean
 
-# Install NGINX, Tailscale, and others
-RUN apk update && \
-    apk add --no-cache \
-      nginx \
-      ca-certificates \
-      iptables ip6tables \
-      curl \
-      bash \
-      openrc \
-      # Tailscale (community package)
-      tailscale
+# Clone the Flutter repository
+RUN git clone https://github.com/flutter/flutter.git /usr/local/flutter
 
-# Copy Flutter web build into NGINX directory
-COPY build/web /usr/share/nginx/html
+# Set Flutter path
+ENV PATH="/usr/local/flutter/bin:/usr/local/flutter/bin/cache/dart-sdk/bin:${PATH}"
 
-# Copy entrypoint script and make it executable
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Enable Flutter web support
+RUN flutter config --enable-web
 
-# Expose HTTP port
+# Pre-download development binaries.
+RUN flutter precache
+
+# Accept Android licenses (if building for Android)
+RUN yes | flutter doctor --android-licenses
+
+# Run flutter doctor
+RUN flutter doctor -v
+
+# Create and set the working directory
+RUN mkdir /app/
+WORKDIR /app/
+
+# Copy application files
+COPY . /app/
+
+# Get Flutter dependencies
+RUN flutter pub get
+
+# Build the Flutter web application
+RUN flutter build web --release --web-renderer html
+
+# Stage 2: Serve the application using NGINX
+FROM nginx:alpine
+
+# Copy the build output to NGINX's html directory
+COPY --from=build-env /app/build/web /usr/share/nginx/html
+
+# Expose port 80
 EXPOSE 80
 
-# Run our entrypoint (starts Tailscale + NGINX)
-ENTRYPOINT ["/entrypoint.sh"]
+# Start NGINX
+CMD ["nginx", "-g", "daemon off;"]
