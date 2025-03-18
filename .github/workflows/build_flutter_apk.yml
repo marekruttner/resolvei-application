@@ -14,12 +14,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Flutter
+      - name: Set up Flutter with Dart SDK 3.6.0
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          flutter-version: '3.7.0'  # Change this to your desired version
+          flutter-version: '3.10.5'  # This version is assumed to include Dart SDK 3.6.0
           cache: true
+
+      - name: Verify Dart SDK version
+        run: dart --version
 
       - name: Install dependencies
         run: flutter pub get
